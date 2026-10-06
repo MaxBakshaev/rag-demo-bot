@@ -1,0 +1,14 @@
+# Qdrant для RAG-демо. Если n8n тоже в Docker — добавьте этот сервис
+# в его docker-compose (или общую сеть), тогда адрес из n8n: http://qdrant:6333
+services:
+  qdrant:
+    image: qdrant/qdrant:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6333:6333"   # REST API + Dashboard: http://localhost:6333/dashboard
+    environment:
+      QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY}
+    volumes:
+      - qdrant_storage:/qdrant/storage
+volumes:
+  qdrant_storage:

@@ -1,6 +1,6 @@
 # RAG-бот по документам на n8n
 
-Учебный проект: бот отвечает на вопросы по внутренним документам компании и указывает источник (файл и страницу). Если ответа в документах нет — честно говорит «Не знаю».
+Учебный проект: Telegram-бот отвечает на вопросы по внутренним документам компании и указывает источник (файл и страницу). Если ответа в документах нет — честно говорит «Не знаю».
 
 Документы в `docs/` — вымышленная компания ООО «ТехноЛайн», реальных данных в репозитории нет.
 
@@ -8,27 +8,128 @@
 
 Два потока в одном воркфлоу (`workflows/rag_demo.json`):
 
-**Загрузка:** Form Trigger → Code (разбивка файлов по items) → Simple Vector Store (Insert)
+**Загрузка:** Form Trigger → HTTP Request «Очистить коллекцию» → Code (разбивка файлов по items) → Qdrant Vector Store (Insert)
 с подузлами Default Data Loader (метаданные `source`, `loc.pageNumber`), Recursive Character Text Splitter и Embeddings.
 
-**Ответы:** Chat Trigger → AI Agent с подузлами Chat Model, Simple Memory и Simple Vector Store в режиме «Retrieve as Tool» (`search_docs`).
+**Ответы:** Telegram Trigger → AI Agent → Send a text message.
+У агента подузлы: Chat Model, Simple Memory (ключ сессии — `chat.id`) и Qdrant Vector Store в режиме «Retrieve as Tool» (`search_docs`).
 
 | Компонент | Выбор |
 |---|---|
 | LLM | `gemini-3.5-flash-lite` |
 | Эмбеддинги | `gemini-embedding-2` (3072 измерения) |
-| Хранилище | Simple Vector Store (демо) |
+| Хранилище | Qdrant, коллекция `rag_docs` |
 | Фрагменты | 800 символов, перекрытие 150 |
 | top-k (Limit) | 4 |
+| Интерфейс | Telegram-бот |
 
-## Как запустить
+## Развёртывание
 
-1. Импортируйте `workflows/rag_demo.json` в n8n.
-2. Создайте credential Google Gemini (API key из AI Studio) и выберите его в узлах Chat Model и Embeddings.
-3. Нажмите **Execute workflow** и загрузите все три PDF из `docs/` одной отправкой формы.
-4. Нажмите **Open Chat** и задавайте вопросы.
+### Что нужно
 
-Simple Vector Store хранит данные в памяти: после перезапуска n8n документы нужно загрузить заново.
+- self-hosted n8n в Docker с публичным HTTPS-адресом (без него Telegram не доставит сообщения);
+- API key Google Gemini ([Google AI Studio](https://aistudio.google.com/));
+- Telegram-бот и его токен (создаётся у [@BotFather](https://t.me/BotFather)).
+
+### 1. Qdrant
+
+Добавьте сервис в **тот же** `docker-compose.yml`, где запущен n8n. Если запустить Qdrant отдельным compose-файлом, он окажется в другой Docker-сети и n8n не найдёт его по имени `qdrant`.
+
+В секцию `services`:
+
+```yaml
+  qdrant:
+    image: qdrant/qdrant:v1.15.4      # закрепите актуальную версию
+    restart: always
+    environment:
+      QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY}
+      QDRANT__TELEMETRY_DISABLED: "true"
+    volumes:
+      - qdrant_storage:/qdrant/storage
+    ports:
+      - 127.0.0.1:6333:6333          # только localhost: наружу не публикуется
+```
+
+В корневую секцию `volumes`:
+
+```yaml
+  qdrant_storage:
+```
+
+В `.env` рядом с compose-файлом:
+
+```bash
+QDRANT_API_KEY=длинная_случайная_строка   # например: openssl rand -hex 32
+```
+
+Запуск без перезапуска остальных сервисов:
+
+```bash
+docker compose config --quiet && echo OK   # проверка синтаксиса
+docker compose up -d qdrant
+docker compose logs qdrant --tail 20       # ищите «Qdrant HTTP listening on 6333»
+```
+
+Проверка ключа:
+
+```bash
+KEY=$(grep '^QDRANT_API_KEY=' .env | cut -d= -f2)
+curl -s localhost:6333/collections -H "api-key: $KEY"           # → {"result":{"collections":[]}...}
+curl -s -o /dev/null -w "%{http_code}\n" localhost:6333/collections   # → 401
+```
+
+Dashboard Qdrant открывается через SSH-туннель: `ssh -L 6333:localhost:6333 user@server`, затем `http://localhost:6333/dashboard`.
+
+### 2. Импорт воркфлоу
+
+n8n → **Workflows → Import from File** → `workflows/rag_demo.json`.
+
+### 3. Credentials
+
+| Credential | Параметры | Узлы |
+|---|---|---|
+| Qdrant API | URL `http://qdrant:6333`, API key из `.env` | Очистить коллекцию, Insert Data to Store, Query Data Tool |
+| Google Gemini (PaLM) API | API key из AI Studio | Google Gemini Chat Model, Embeddings Google Gemini |
+| Telegram API | токен бота | Telegram Trigger, Send a text message |
+
+Если Qdrant доступен по другому адресу, исправьте URL и в узле «Очистить коллекцию» — он задан в самом узле.
+
+### 4. Загрузка документов
+
+Нажмите **Execute workflow** — откроется форма. Загрузите все три PDF из `docs/` **одной отправкой**: каждая загрузка удаляет коллекцию и создаёт её заново.
+
+Проверка:
+
+```bash
+curl -s localhost:6333/collections/rag_docs -H "api-key: $KEY" | grep -o '"vectors":{[^}]*}'
+curl -s localhost:6333/collections/rag_docs -H "api-key: $KEY" | grep -o '"points_count":[0-9]*'
+```
+
+Ожидается `"vectors":{"size":3072,"distance":"Cosine"` и около 10–12 точек.
+
+### 5. Запуск бота
+
+Активируйте воркфлоу (переключатель **Active**) и напишите боту. Быстрая проверка:
+
+1. «Сколько длится основной ежегодный отпуск?» → 28 дней, источник `reglament_otpuskov.pdf, стр. 1`;
+2. сразу следом «А для стажёров?» → 2,33 дня за месяц (проверка памяти);
+3. «Положен ли сотрудникам полис ДМС?» → «Не знаю…» без источника.
+
+### Решение проблем
+
+| Симптом | Причина | Что сделать |
+|---|---|---|
+| `Not existing vector name error` в Insert | коллекция создана не узлом (через Dashboard или с опцией Collection Config) — без векторов или с именованным вектором | удалить коллекцию (`curl -X DELETE localhost:6333/collections/rag_docs -H "api-key: $KEY"`), убрать Collection Config, загрузить заново |
+| Credential Qdrant не сохраняется | n8n не видит Qdrant | Qdrant должен быть в том же compose; URL `http://qdrant:6333`, не `localhost` |
+| В выходе «Очистить коллекцию» 401 | ключ не передаётся | проверить credential; при необходимости Authentication → Header Auth с именем `api-key` |
+| Бот молчит | у бота один webhook: открыт тестовый режим или воркфлоу не активен | остановить «Execute workflow», включить Active |
+| Ошибка «can't parse entities» при отправке | Telegram разбирает `_` в именах файлов как Markdown | Parse Mode = HTML (уже задан) |
+| Агент падает на фото или стикере | нет `message.text` | по желанию добавить Filter после Telegram Trigger |
+
+### Ограничения
+
+- **Simple Memory** хранит историю диалогов в памяти процесса n8n. После перезапуска она теряется, а в queue mode с несколькими воркерами может «прыгать» между процессами. Для продакшена — Postgres или Redis Chat Memory.
+- Повторная загрузка формы полностью пересоздаёт коллекцию — инкрементального обновления документов нет.
 
 ## Оценка качества
 
@@ -42,7 +143,7 @@ Simple Vector Store хранит данные в памяти: после пер
 | Вне документов (вкл. ловушку) | 3 | отказ без выдумки |
 | Память | 1 | уточняющий вопрос в той же сессии |
 
-Каждый ответ оценивался по трём метрикам (0/1): `correct` — ключевые факты верны; `source_ok` — верные файл и страница; `no_hallucination` — нет фактов вне документов. Максимум — 45. Каждый вопрос задавался в новой сессии чата.
+Каждый ответ оценивался по трём метрикам (0/1): `correct` — ключевые факты верны; `source_ok` — верные файл и страница; `no_hallucination` — нет фактов вне документов. Максимум — 45. Каждый вопрос задавался в новой сессии чата. Подбор параметров (прогоны 1–8) шёл на Simple Vector Store во встроенном чате n8n; итоговая конфигурация затем перенесена на Qdrant и Telegram.
 
 ### Результаты
 
@@ -86,10 +187,27 @@ Simple Vector Store хранит данные в памяти: после пер
 
 На вопрос «Хочу месяц поработать из Испании — что нужно?» бот верно отвечает по политике удалённой работы (лимит 30 дней, согласование, только через VPN), но не ищет в ИТ FAQ, как получить VPN. Ошибка не исчезла ни при Limit 8, ни на более сильной модели, ни с общим правилом о дополнительном поиске. Это вопрос повышенной сложности: ответ требует второго поиска по теме, которую пользователь не назвал. Специфичные для теста слова в промпт сознательно не добавлялись, чтобы не подгонять бота под тест.
 
+## Публикация в Git
+
+Экспорт из n8n содержит ID credentials, webhook ID и `instanceId`. Перед коммитом очищайте его:
+
+```bash
+jq 'del(.id,.versionId,.meta) | .pinData={} | .active=false
+    | .nodes |= map(del(.credentials,.webhookId))' export.json > workflows/rag_demo.json
+```
+
+Ключи API в экспорт n8n не попадают, но `.env`, серверный `docker-compose.yml` (домен, email для Let's Encrypt) и личные экспорты в репозиторий не кладите — они закрыты в `.gitignore`.
+
+## Что дальше
+
+- Заменить Simple Memory на Postgres или Redis Chat Memory.
+- Для многошаговых вопросов вроде №9 попробовать переписывание запроса (query rewriting) — отдельный шаг, который разбивает вопрос на несколько поисковых запросов.
+- Расширить набор вопросов многошаговыми случаями: текущие 15 вопросов уже почти не различают конфигурации.
+
 ## Структура репозитория
 
 ```
-docs/          тестовые PDF
+docs/          тестовые PDF (вымышленная компания)
 eval/          набор вопросов и результаты всех прогонов
-workflows/     воркфлоу n8n
+workflows/     воркфлоу n8n (без credentials и webhook ID)
 ```

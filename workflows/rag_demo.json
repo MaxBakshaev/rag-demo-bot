@@ -1,9 +1,9 @@
 {
-  "name": "Demo: RAG in n8n (Telegram)",
+  "name": "Demo: RAG in n8n (Telegram + Qdrant)",
   "nodes": [
     {
       "parameters": {
-        "content": "## 📖 Демо: RAG в n8n\nБот отвечает на вопросы по вашим документам и указывает источник.\n\n**Как запустить**\n1. Нажмите **Execute workflow** — откроется форма. Загрузите все файлы **за один раз** (каждая загрузка очищает хранилище).\n2. Нажмите **Open Chat** и задайте вопрос по содержанию документов.\n3. Задайте вопрос не по документам — бот должен ответить «Не знаю».\n\n**Важно:** Simple Vector Store хранит данные в памяти n8n. После перезапуска документы нужно загрузить заново.\n\nДокументация: [RAG в n8n](https://docs.n8n.io/advanced-ai/rag-in-n8n/)",
+        "content": "## 📖 Демо: RAG в n8n\nTelegram-бот отвечает на вопросы по документам и указывает источник (файл и страницу). Нет ответа в документах — говорит «Не знаю».\n\n**Как пользоваться** (после развёртывания ↓)\n1. **Execute workflow** → откроется форма. Загрузите все файлы **за один раз** — каждая загрузка пересоздаёт коллекцию.\n2. Активируйте воркфлоу и пишите боту в Telegram.\n3. Проверка: вопрос не по документам → «Не знаю» без источника.\n\nВекторы хранятся в Qdrant (`rag_docs`) и переживают перезапуск n8n.\n\nДокументация: [RAG в n8n](https://docs.n8n.io/advanced-ai/rag-in-n8n/)",
         "height": 352,
         "width": 440,
         "color": 4
@@ -11,26 +11,26 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -448,
-        -64
+        -1136,
+        -1008
       ],
-      "id": "425b28ff-e945-42f6-a66e-fe33b7b19766",
+      "id": "2c38c0c3-f92b-4952-a850-1c6e1f2d210e",
       "name": "Заметка: README"
     },
     {
       "parameters": {
         "content": "## 📚 Поток 1: загрузка документов\nФайл → текст → фрагменты → векторы → хранилище",
         "height": 90,
-        "width": 1048,
+        "width": 1338,
         "color": 7
       },
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        32,
-        -64
+        -656,
+        -1008
       ],
-      "id": "1b615fad-a71a-414c-83b2-769865d8af89",
+      "id": "373feda7-1b08-488b-8ec2-a227f5a98fa8",
       "name": "Заголовок: загрузка"
     },
     {
@@ -43,15 +43,15 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        32,
-        48
+        -656,
+        -896
       ],
-      "id": "fbd29920-3d55-4bbe-9810-21f7b1557ef3",
+      "id": "8d95352b-13d6-4086-bf63-824fbe67f9e1",
       "name": "Заметка: форма"
     },
     {
       "parameters": {
-        "content": "### ② Разбивка файлов по items\nПревращает 1 item с N файлами в N отдельных items. Каждый получает:\n\n• `json.fileName` — имя файла для метаданных\n• `binary.data` — сам файл\n\nБез этого шага все фрагменты получили бы имя одного файла.",
+        "content": "### ② Разбивка файлов по items\nБерёт файлы прямо из формы (`$('Upload your file here')`) — HTTP-узел перед ним заменяет данные ответом Qdrant.\n\n1 item с N файлами → N items: `json.fileName` + `binary.data`.",
         "height": 234,
         "width": 280,
         "color": 5
@@ -59,63 +59,63 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        304,
-        48
+        -96,
+        -896
       ],
-      "id": "71b169fd-26d4-4547-a492-0ccec4b9b264",
+      "id": "cd44be4b-4074-4a2f-a11c-0d45fa6d265a",
       "name": "Заметка: разбивка"
     },
     {
       "parameters": {
-        "content": "### ③ Запись в хранилище\nSimple Vector Store, режим **Insert**. Берёт фрагменты от Data Loader, векторы от Embeddings и сохраняет под ключом `docs_demo`.\n\n**Clear Store** включён: перед загрузкой хранилище очищается. Удобно для экспериментов, но старые документы пропадают.\n\nБоевой вариант — Qdrant или PGVector.",
-        "height": 234,
+        "content": "### ③ Запись в Qdrant\nQdrant Vector Store, режим **Insert**, коллекция `rag_docs`.\n\nКоллекцию узел создаёт сам: размер вектора берётся из эмбеддингов (3072), метрика Cosine. ⚠️ Не задавайте **Collection Config** и не создавайте коллекцию через Dashboard — получится ошибка «Not existing vector name».\n\nКаждый фрагмент — точка: вектор + payload `content` и `metadata` (source, loc.pageNumber).",
+        "height": 290,
         "width": 340,
         "color": 5
       },
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        608,
-        48
+        208,
+        -896
       ],
-      "id": "451c9e73-07ad-475f-9af6-3601e10d7a48",
+      "id": "a7d34ab3-b92b-42a3-8422-4bcd8149bc1f",
       "name": "Заметка: запись"
     },
     {
       "parameters": {
         "content": "### ④ Default Data Loader\nЧитает файл из `binary.data` и извлекает текст.\n\nДобавляет к каждому фрагменту **метаданные**:\n• `source` — имя файла\n• `loc.pageNumber` — страница (только PDF, автоматически)\n\nОтсюда бот берёт ссылку на источник.",
-        "height": 222,
-        "width": 340,
+        "height": 174,
+        "width": 436,
         "color": 5
       },
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        352,
-        512
+        -48,
+        -448
       ],
-      "id": "4d255f56-60cd-4e40-a4cf-694c6c044a0a",
+      "id": "97b54123-4976-4808-9034-adc25a9386e7",
       "name": "Заметка: data loader"
     },
     {
       "parameters": {
         "content": "### ⑤ Recursive Character Text Splitter\nРежет текст на фрагменты: сначала по абзацам, затем по строкам и предложениям.\n\n• **Chunk Size 800** — размер фрагмента в символах\n• **Overlap 150** — общий «хвост» соседних фрагментов, чтобы факт на границе не потерялся\n\nИзменили параметры — загрузите документы заново.",
-        "height": 240,
-        "width": 340,
+        "height": 192,
+        "width": 452,
         "color": 5
       },
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        352,
-        768
+        48,
+        -256
       ],
-      "id": "1f83abbc-d9f4-408c-9221-de4924cea3e4",
+      "id": "e8e266eb-ea8a-45bb-8820-ebb39d1cb351",
       "name": "Заметка: splitter"
     },
     {
       "parameters": {
-        "content": "### 🔢 Embeddings (gemini-embedding-2)\nПревращает текст в вектор — набор чисел, описывающий смысл (3072 измерения).\n\nОдин узел подключён и к записи, и к поиску: документы и вопросы кодируются **одной моделью с одинаковыми настройками**. Векторы разных моделей несовместимы.\n\nСменили модель — переиндексируйте документы. Для Qdrant/PGVector размерность коллекции должна быть 3072.",
+        "content": "### 🔢 Embeddings (gemini-embedding-2)\nПревращает текст в вектор — набор чисел, описывающий смысл (3072 измерения).\n\nОдин узел подключён и к записи, и к поиску: документы и вопросы кодируются **одной моделью с одинаковыми настройками**. Векторы разных моделей несовместимы.\n\nСменили модель — загрузите документы заново (коллекция пересоздастся с новой размерностью).",
         "height": 254,
         "width": 332,
         "color": 3
@@ -123,10 +123,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        800,
-        1104
+        400,
+        160
       ],
-      "id": "c0414bed-1322-40b9-ae4a-f96ad2788b30",
+      "id": "255d72f2-37da-411f-ae25-a6930965ff77",
       "name": "Заметка: embeddings"
     },
     {
@@ -139,10 +139,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        1264,
-        -48
+        864,
+        -992
       ],
-      "id": "9f225ad0-5917-4ece-828e-48f416b8505e",
+      "id": "4e8ddb42-e654-4efe-a8c9-880f5e8bc0a7",
       "name": "Заголовок: ответы"
     },
     {
@@ -155,10 +155,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        1264,
-        64
+        864,
+        -880
       ],
-      "id": "e959d517-c112-48f5-8038-4271530353b8",
+      "id": "8c9a0847-7a16-4c84-ab35-4737d42b5ccc",
       "name": "Заметка: чат-триггер"
     },
     {
@@ -171,58 +171,58 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        1536,
-        64
+        1136,
+        -880
       ],
-      "id": "c2895a70-429f-4bba-ba6e-361dfc84c291",
+      "id": "43ff7ee5-fb37-4ee9-9db0-c8cb82385c19",
       "name": "Заметка: агент"
     },
     {
       "parameters": {
-        "content": "### ③ Chat Model (Gemini)\nLLM, которая рассуждает и пишет ответ. Должна поддерживать вызов инструментов (tool calling).\n\nМодель: **gemini-3.5-flash-lite** — дешёвая и быстрая, для ответов строго по фрагментам её хватает. Для сравнения можно прогнать **gemini-3.6-flash**.\n\n⚠️ **Top K** в настройках модели — это НЕ top-k поиска, а параметр выбора токенов. Количество фрагментов задаётся в Query Data Tool → Limit.",
-        "height": 360,
-        "width": 250,
+        "content": "### ③ Chat Model (Gemini)\nLLM, которая рассуждает и пишет ответ. Должна поддерживать вызов инструментов (tool calling).\n\nМодель: **gemini-3.5-flash-lite** — дешёвая и быстрая, для ответов строго по фрагментам её хватает.\n\n⚠️ **Top K** в настройках модели — это НЕ top-k поиска, а параметр выбора токенов. Количество фрагментов задаётся в Query Data Tool → Limit.",
+        "height": 312,
+        "width": 282,
         "color": 6
       },
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        1312,
-        832
+        816,
+        -224
       ],
-      "id": "e4419bce-7f8d-45bd-9f4a-a2f3f697fb8f",
+      "id": "e50d5507-e9a0-4afb-90b3-42778970e15d",
       "name": "Заметка: модель"
     },
     {
       "parameters": {
         "content": "### ④ Simple Memory\nХранит последние сообщения диалога (по умолчанию 5), чтобы бот понимал уточнения вроде «а для стажёров?».\n\nSession Key = `chat.id` из Telegram Trigger: у каждого чата своя история. Без ключа узел падает с ошибкой «No session ID».",
-        "height": 252,
-        "width": 260,
+        "height": 316,
+        "width": 180,
         "color": 6
       },
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        1616,
-        832
+        1120,
+        -224
       ],
-      "id": "5288ea1c-2787-43eb-9d36-c26c18684d2f",
+      "id": "3dce61b0-445f-41da-b476-c6f952bb7251",
       "name": "Заметка: память"
     },
     {
       "parameters": {
-        "content": "### ⑤ Query Data Tool (search_docs)\nТо же хранилище `docs_demo`, режим **Retrieve as Tool**.\n\n• **Description** — по нему агент решает, когда вызывать инструмент\n• **Limit (top-k) = 4** — сколько ближайших фрагментов вернуть\n• **Include Metadata** — передаёт агенту `source` и страницу\n\nMemory Key должен совпадать с узлом записи.",
-        "height": 244,
-        "width": 360,
+        "content": "### ⑤ Query Data Tool (search_docs)\nТа же коллекция Qdrant `rag_docs`, режим **Retrieve as Tool**.\n\n• **Description** — по нему агент решает, когда вызывать инструмент\n• **Limit (top-k) = 4**\n• **Include Metadata** — передаёт агенту `source` и страницу\n\nКоллекция должна совпадать с узлом записи.",
+        "height": 312,
+        "width": 280,
         "color": 6
       },
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        1936,
-        832
+        1328,
+        -224
       ],
-      "id": "47e91292-b613-4f22-b4e0-04985f7b4f14",
+      "id": "31617264-db46-40cf-8eaf-49c337ccec26",
       "name": "Заметка: инструмент"
     },
     {
@@ -243,10 +243,10 @@
       "type": "n8n-nodes-base.formTrigger",
       "typeVersion": 2.2,
       "position": [
-        96,
-        320
+        -576,
+        -624
       ],
-      "id": "2dff9770-e621-4739-9715-835b7c0ac60c",
+      "id": "b8e74b40-6355-405d-97ed-accf9d89cf8d",
       "name": "Upload your file here"
     },
     {
@@ -268,47 +268,46 @@
       "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
       "typeVersion": 1.1,
       "position": [
-        816,
-        512
+        416,
+        -432
       ],
-      "id": "1dd7cba2-e6bf-4a97-bb65-edf72488822b",
+      "id": "20e74481-39c3-4dc7-b5f8-55488267c0dd",
       "name": "Default Data Loader"
     },
     {
       "parameters": {
         "mode": "insert",
-        "memoryKey": {
+        "qdrantCollection": {
           "__rl": true,
-          "value": "docs_demo",
-          "mode": "list",
-          "cachedResultName": "docs_demo"
+          "value": "rag_docs",
+          "mode": "id"
         },
-        "clearStore": true
+        "options": {}
       },
-      "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
       "typeVersion": 1.2,
       "position": [
-        672,
-        320
+        272,
+        -624
       ],
-      "id": "911ece6f-c216-48b7-a5f0-cb765cbe01c1",
+      "id": "01ff9b12-9d97-43c3-b8c0-9322c35b6026",
       "name": "Insert Data to Store"
     },
     {
       "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.message.text }}",
         "options": {
           "systemMessage": "Ты — ассистент, отвечающий строго по документам компании.\n\nПравила:\n1. На любой вопрос по существу сначала вызови инструмент search_docs.\n2. Если вопрос состоит из нескольких частей — ищи по каждой отдельно.\n   Если найденный текст требует от пользователя действия с системой,\n   доступом или процедурой, сделай дополнительный поиск о том, как\n   это получить или выполнить.\n3. Отвечай ТОЛЬКО на основе найденных фрагментов. Не используй\n   собственные знания.\n4. Если ответа во фрагментах нет, ответь ровно:\n   «Не знаю — в документах нет информации об этом.»\n   Источник в этом случае НЕ указывай.\n5. В конце ответа укажи источники, каждый с новой строки:\n   Источник: <source>, стр. <номер страницы>\n   Имя файла копируй из метаданных символ в символ.\n   Указывай только фрагменты, на которые реально опирался.\n6. Пиши простым текстом без Markdown: без **, #, таблиц.\n   Отвечай кратко, на языке вопроса."
-        },
-        "promptType": "define",
-        "text": "={{ $json.message.text }}"
+        }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 2,
       "position": [
-        1616,
-        320
+        1216,
+        -624
       ],
-      "id": "8d2c84cf-0d03-4bbe-89d8-8d69d837dc9c",
+      "id": "6a374553-0ebe-4741-8618-1bc2dadcbcb1",
       "name": "AI Agent"
     },
     {
@@ -316,20 +315,20 @@
         "mode": "retrieve-as-tool",
         "toolName": "search_docs",
         "toolDescription": "Поиск по загруженным документам: регламенты, инструкции, FAQ. Вызывай для любого вопроса по содержанию документов.\nМожно вызывать несколько раз с разными запросами.",
-        "memoryKey": {
+        "qdrantCollection": {
           "__rl": true,
-          "value": "docs_demo",
-          "mode": "list",
-          "cachedResultName": "docs_demo"
-        }
+          "value": "rag_docs",
+          "mode": "id"
+        },
+        "options": {}
       },
-      "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
       "typeVersion": 1.2,
       "position": [
-        1744,
-        560
+        1360,
+        -384
       ],
-      "id": "929f8591-e90b-4acf-be2b-c2fc1e7115d0",
+      "id": "4d3887de-acf9-4958-873d-47bf23fcead1",
       "name": "Query Data Tool"
     },
     {
@@ -340,23 +339,23 @@
       "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
       "typeVersion": 1.3,
       "position": [
-        1568,
-        560
+        1168,
+        -384
       ],
-      "id": "43b210a6-a2cc-40ff-8391-4815e02f450e",
+      "id": "b65b32df-a9f3-4629-ae27-f22e34c15831",
       "name": "Simple Memory"
     },
     {
       "parameters": {
-        "jsCode": "const out = [];\n$input.all().forEach((item, i) => {\n  for (const bin of Object.values(item.binary ?? {})) {\n    out.push({\n      json: { fileName: bin.fileName },\n      binary: { data: bin },\n      pairedItem: { item: i },\n    });\n  }\n});\nreturn out;"
+        "jsCode": "const out = [];\n$('Upload your file here').all().forEach((item, i) => {\n  for (const bin of Object.values(item.binary ?? {})) {\n    out.push({\n      json: { fileName: bin.fileName },\n      binary: { data: bin },\n      pairedItem: { item: i },\n    });\n  }\n});\nreturn out;"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        384,
-        320
+        -16,
+        -624
       ],
-      "id": "bea102d0-bd38-4e31-8a99-948cf1f5a8b9",
+      "id": "02e86113-86da-46d2-a71e-5382829b72cd",
       "name": "Разбивка файлов по items"
     },
     {
@@ -368,10 +367,10 @@
       "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
       "typeVersion": 1,
       "position": [
-        944,
-        688
+        544,
+        -256
       ],
-      "id": "f1a14091-86a6-4bf6-9ff0-cfff99b48279",
+      "id": "b277926d-da7d-4608-881b-64f25a1512a6",
       "name": "Recursive Character Text Splitter"
     },
     {
@@ -384,10 +383,10 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1.1,
       "position": [
-        1376,
-        560
+        976,
+        -384
       ],
-      "id": "27e920ea-de47-40c9-ac04-224860b4935f",
+      "id": "f5e8b31f-71e1-44a0-97f9-69ce6c88cd83",
       "name": "Google Gemini Chat Model"
     },
     {
@@ -397,10 +396,10 @@
       "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
       "typeVersion": 1,
       "position": [
-        912,
-        960
+        512,
+        16
       ],
-      "id": "38b625f9-6039-4a0b-a87d-cb3ba3659f73",
+      "id": "eaed8373-7dfc-413c-8cea-8eea1c43577f",
       "name": "Embeddings Google Gemini"
     },
     {
@@ -415,10 +414,10 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        2000,
-        320
+        1632,
+        -624
       ],
-      "id": "fcb4513a-d434-484f-9afd-1e042bca498e",
+      "id": "bebac50c-6ca3-42db-ae1f-cd5e6d0687de",
       "name": "Send a text message"
     },
     {
@@ -431,10 +430,10 @@
       "type": "n8n-nodes-base.telegramTrigger",
       "typeVersion": 1.2,
       "position": [
-        1300,
-        320
+        944,
+        -624
       ],
-      "id": "7b9c6fae-178a-408d-9aa3-581cd4ffeb66",
+      "id": "1233f7c9-8fc3-4459-ab02-96a92d6aa200",
       "name": "Telegram Trigger"
     },
     {
@@ -447,11 +446,66 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        1936,
-        64
+        1536,
+        -880
       ],
-      "id": "b7410caf-be57-428f-b25d-8bcc3cdc1c3e",
+      "id": "4b54da67-2a84-44d3-b254-a2dc97b3e918",
       "name": "Заметка: отправка"
+    },
+    {
+      "parameters": {
+        "method": "DELETE",
+        "url": "http://qdrant:6333/collections/rag_docs",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "qdrantApi",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -288,
+        -624
+      ],
+      "id": "6aafe1ff-4135-4e4c-b5db-9e4b680312d0",
+      "name": "Очистить коллекцию"
+    },
+    {
+      "parameters": {
+        "content": "### ① a. Очистить коллекцию\nHTTP DELETE `/collections/rag_docs` в Qdrant — аналог Clear Store.\n\nУзел Insert создаст коллекцию заново. Ответ «не найдена» при первом запуске — норма (Never Error).\n\n⚠️ Адрес Qdrant задан в URL.",
+        "height": 234,
+        "width": 250,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -368,
+        -896
+      ],
+      "id": "9a983236-3885-4f65-b849-e018aaf9c33f",
+      "name": "Заметка: очистка"
+    },
+    {
+      "parameters": {
+        "content": "## 🚀 Развёртывание\nНужно: self-hosted n8n с публичным HTTPS (для Telegram), Docker, Qdrant.\n\n**1. Qdrant** — добавьте сервис в docker-compose n8n (одна сеть):\n```\nqdrant:\n  image: qdrant/qdrant:v1.15.4\n  restart: always\n  environment:\n    QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY}\n  volumes:\n    - qdrant_storage:/qdrant/storage\n  ports:\n    - 127.0.0.1:6333:6333\n```\nВ `.env`: `QDRANT_API_KEY=...` (`openssl rand -hex 32`), затем `docker compose up -d qdrant`.\n\n**2. Credentials в n8n**\n• **Qdrant API**: URL `http://qdrant:6333` + ключ → узлы «Очистить коллекцию», «Insert Data to Store», «Query Data Tool»\n• **Google Gemini**: ключ из AI Studio → Chat Model, Embeddings\n• **Telegram**: токен от @BotFather → Telegram Trigger, Send a text message\n\n**3. Проверьте URL** в узле «Очистить коллекцию», если Qdrant не на `qdrant:6333`.\n\n**4.** Загрузите документы через форму, активируйте воркфлоу.\n\nПодробно и решение проблем — в README репозитория.",
+        "height": 640,
+        "width": 440,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1136,
+        -624
+      ],
+      "id": "20fa7783-91f2-48ef-85fb-0e74e983229e",
+      "name": "Заметка: развёртывание"
     }
   ],
   "pinData": {},
@@ -460,7 +514,7 @@
       "main": [
         [
           {
-            "node": "Разбивка файлов по items",
+            "node": "Очистить коллекцию",
             "type": "main",
             "index": 0
           }
@@ -565,6 +619,17 @@
         [
           {
             "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Очистить коллекцию": {
+      "main": [
+        [
+          {
+            "node": "Разбивка файлов по items",
             "type": "main",
             "index": 0
           }
