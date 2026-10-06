@@ -1,0 +1,581 @@
+{
+  "name": "Demo: RAG in n8n (Telegram)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## 📖 Демо: RAG в n8n\nБот отвечает на вопросы по вашим документам и указывает источник.\n\n**Как запустить**\n1. Нажмите **Execute workflow** — откроется форма. Загрузите все файлы **за один раз** (каждая загрузка очищает хранилище).\n2. Нажмите **Open Chat** и задайте вопрос по содержанию документов.\n3. Задайте вопрос не по документам — бот должен ответить «Не знаю».\n\n**Важно:** Simple Vector Store хранит данные в памяти n8n. После перезапуска документы нужно загрузить заново.\n\nДокументация: [RAG в n8n](https://docs.n8n.io/advanced-ai/rag-in-n8n/)",
+        "height": 352,
+        "width": 440,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -448,
+        -64
+      ],
+      "id": "425b28ff-e945-42f6-a66e-fe33b7b19766",
+      "name": "Заметка: README"
+    },
+    {
+      "parameters": {
+        "content": "## 📚 Поток 1: загрузка документов\nФайл → текст → фрагменты → векторы → хранилище",
+        "height": 90,
+        "width": 1048,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        32,
+        -64
+      ],
+      "id": "1b615fad-a71a-414c-83b2-769865d8af89",
+      "name": "Заголовок: загрузка"
+    },
+    {
+      "parameters": {
+        "content": "### ① Форма загрузки\nТриггер потока. Показывает веб-форму для файлов (PDF, CSV, TXT, DOC, DOCX).\n\nВсе выбранные файлы приходят **одним item** с несколькими binary-полями, поэтому дальше их нужно разделить.",
+        "height": 234,
+        "width": 250,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        32,
+        48
+      ],
+      "id": "fbd29920-3d55-4bbe-9810-21f7b1557ef3",
+      "name": "Заметка: форма"
+    },
+    {
+      "parameters": {
+        "content": "### ② Разбивка файлов по items\nПревращает 1 item с N файлами в N отдельных items. Каждый получает:\n\n• `json.fileName` — имя файла для метаданных\n• `binary.data` — сам файл\n\nБез этого шага все фрагменты получили бы имя одного файла.",
+        "height": 234,
+        "width": 280,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        304,
+        48
+      ],
+      "id": "71b169fd-26d4-4547-a492-0ccec4b9b264",
+      "name": "Заметка: разбивка"
+    },
+    {
+      "parameters": {
+        "content": "### ③ Запись в хранилище\nSimple Vector Store, режим **Insert**. Берёт фрагменты от Data Loader, векторы от Embeddings и сохраняет под ключом `docs_demo`.\n\n**Clear Store** включён: перед загрузкой хранилище очищается. Удобно для экспериментов, но старые документы пропадают.\n\nБоевой вариант — Qdrant или PGVector.",
+        "height": 234,
+        "width": 340,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        608,
+        48
+      ],
+      "id": "451c9e73-07ad-475f-9af6-3601e10d7a48",
+      "name": "Заметка: запись"
+    },
+    {
+      "parameters": {
+        "content": "### ④ Default Data Loader\nЧитает файл из `binary.data` и извлекает текст.\n\nДобавляет к каждому фрагменту **метаданные**:\n• `source` — имя файла\n• `loc.pageNumber` — страница (только PDF, автоматически)\n\nОтсюда бот берёт ссылку на источник.",
+        "height": 222,
+        "width": 340,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        352,
+        512
+      ],
+      "id": "4d255f56-60cd-4e40-a4cf-694c6c044a0a",
+      "name": "Заметка: data loader"
+    },
+    {
+      "parameters": {
+        "content": "### ⑤ Recursive Character Text Splitter\nРежет текст на фрагменты: сначала по абзацам, затем по строкам и предложениям.\n\n• **Chunk Size 800** — размер фрагмента в символах\n• **Overlap 150** — общий «хвост» соседних фрагментов, чтобы факт на границе не потерялся\n\nИзменили параметры — загрузите документы заново.",
+        "height": 240,
+        "width": 340,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        352,
+        768
+      ],
+      "id": "1f83abbc-d9f4-408c-9221-de4924cea3e4",
+      "name": "Заметка: splitter"
+    },
+    {
+      "parameters": {
+        "content": "### 🔢 Embeddings (gemini-embedding-2)\nПревращает текст в вектор — набор чисел, описывающий смысл (3072 измерения).\n\nОдин узел подключён и к записи, и к поиску: документы и вопросы кодируются **одной моделью с одинаковыми настройками**. Векторы разных моделей несовместимы.\n\nСменили модель — переиндексируйте документы. Для Qdrant/PGVector размерность коллекции должна быть 3072.",
+        "height": 254,
+        "width": 332,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        800,
+        1104
+      ],
+      "id": "c0414bed-1322-40b9-ae4a-f96ad2788b30",
+      "name": "Заметка: embeddings"
+    },
+    {
+      "parameters": {
+        "content": "## 🐕 Поток 2: ответы на вопросы\nВопрос → поиск фрагментов → ответ со ссылкой на источник",
+        "height": 90,
+        "width": 1040,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1264,
+        -48
+      ],
+      "id": "9f225ad0-5917-4ece-828e-48f416b8505e",
+      "name": "Заголовок: ответы"
+    },
+    {
+      "parameters": {
+        "content": "### ① Telegram Trigger\nПринимает сообщения боту (событие *message*). Нужен публичный HTTPS-адрес n8n.\n\nТекст вопроса — `message.text`, id чата — `message.chat.id`.\n\nУ бота один webhook: тестовый и боевой режим не работают одновременно.",
+        "height": 218,
+        "width": 260,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1264,
+        64
+      ],
+      "id": "e959d517-c112-48f5-8038-4271530353b8",
+      "name": "Заметка: чат-триггер"
+    },
+    {
+      "parameters": {
+        "content": "### ② AI Agent\n«Мозг» бота. Prompt: *Define below* → `{{ $json.message.text }}` (у Telegram нет поля chatInput).\n\nСам решает, вызывать ли `search_docs`. Правила — в **Options → System Message**: только по документам, иначе «Не знаю», источник, без Markdown.",
+        "height": 218,
+        "width": 360,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1536,
+        64
+      ],
+      "id": "c2895a70-429f-4bba-ba6e-361dfc84c291",
+      "name": "Заметка: агент"
+    },
+    {
+      "parameters": {
+        "content": "### ③ Chat Model (Gemini)\nLLM, которая рассуждает и пишет ответ. Должна поддерживать вызов инструментов (tool calling).\n\nМодель: **gemini-3.5-flash-lite** — дешёвая и быстрая, для ответов строго по фрагментам её хватает. Для сравнения можно прогнать **gemini-3.6-flash**.\n\n⚠️ **Top K** в настройках модели — это НЕ top-k поиска, а параметр выбора токенов. Количество фрагментов задаётся в Query Data Tool → Limit.",
+        "height": 360,
+        "width": 250,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1312,
+        832
+      ],
+      "id": "e4419bce-7f8d-45bd-9f4a-a2f3f697fb8f",
+      "name": "Заметка: модель"
+    },
+    {
+      "parameters": {
+        "content": "### ④ Simple Memory\nХранит последние сообщения диалога (по умолчанию 5), чтобы бот понимал уточнения вроде «а для стажёров?».\n\nSession Key = `chat.id` из Telegram Trigger: у каждого чата своя история. Без ключа узел падает с ошибкой «No session ID».",
+        "height": 252,
+        "width": 260,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1616,
+        832
+      ],
+      "id": "5288ea1c-2787-43eb-9d36-c26c18684d2f",
+      "name": "Заметка: память"
+    },
+    {
+      "parameters": {
+        "content": "### ⑤ Query Data Tool (search_docs)\nТо же хранилище `docs_demo`, режим **Retrieve as Tool**.\n\n• **Description** — по нему агент решает, когда вызывать инструмент\n• **Limit (top-k) = 4** — сколько ближайших фрагментов вернуть\n• **Include Metadata** — передаёт агенту `source` и страницу\n\nMemory Key должен совпадать с узлом записи.",
+        "height": 244,
+        "width": 360,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1936,
+        832
+      ],
+      "id": "47e91292-b613-4f22-b4e0-04985f7b4f14",
+      "name": "Заметка: инструмент"
+    },
+    {
+      "parameters": {
+        "formTitle": "Upload your data to test RAG",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Upload your file(s)",
+              "fieldType": "file",
+              "acceptFileTypes": ".pdf, .csv, .txt, .doc, .docx",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        96,
+        320
+      ],
+      "id": "2dff9770-e621-4739-9715-835b7c0ac60c",
+      "name": "Upload your file here"
+    },
+    {
+      "parameters": {
+        "dataType": "binary",
+        "binaryMode": "specificField",
+        "textSplittingMode": "custom",
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "source",
+                "value": "={{ $json.fileName }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        816,
+        512
+      ],
+      "id": "1dd7cba2-e6bf-4a97-bb65-edf72488822b",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "memoryKey": {
+          "__rl": true,
+          "value": "docs_demo",
+          "mode": "list",
+          "cachedResultName": "docs_demo"
+        },
+        "clearStore": true
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+      "typeVersion": 1.2,
+      "position": [
+        672,
+        320
+      ],
+      "id": "911ece6f-c216-48b7-a5f0-cb765cbe01c1",
+      "name": "Insert Data to Store"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "Ты — ассистент, отвечающий строго по документам компании.\n\nПравила:\n1. На любой вопрос по существу сначала вызови инструмент search_docs.\n2. Если вопрос состоит из нескольких частей — ищи по каждой отдельно.\n   Если найденный текст требует от пользователя действия с системой,\n   доступом или процедурой, сделай дополнительный поиск о том, как\n   это получить или выполнить.\n3. Отвечай ТОЛЬКО на основе найденных фрагментов. Не используй\n   собственные знания.\n4. Если ответа во фрагментах нет, ответь ровно:\n   «Не знаю — в документах нет информации об этом.»\n   Источник в этом случае НЕ указывай.\n5. В конце ответа укажи источники, каждый с новой строки:\n   Источник: <source>, стр. <номер страницы>\n   Имя файла копируй из метаданных символ в символ.\n   Указывай только фрагменты, на которые реально опирался.\n6. Пиши простым текстом без Markdown: без **, #, таблиц.\n   Отвечай кратко, на языке вопроса."
+        },
+        "promptType": "define",
+        "text": "={{ $json.message.text }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        1616,
+        320
+      ],
+      "id": "8d2c84cf-0d03-4bbe-89d8-8d69d837dc9c",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolName": "search_docs",
+        "toolDescription": "Поиск по загруженным документам: регламенты, инструкции, FAQ. Вызывай для любого вопроса по содержанию документов.\nМожно вызывать несколько раз с разными запросами.",
+        "memoryKey": {
+          "__rl": true,
+          "value": "docs_demo",
+          "mode": "list",
+          "cachedResultName": "docs_demo"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+      "typeVersion": 1.2,
+      "position": [
+        1744,
+        560
+      ],
+      "id": "929f8591-e90b-4acf-be2b-c2fc1e7115d0",
+      "name": "Query Data Tool"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Telegram Trigger').item.json.message.chat.id }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        1568,
+        560
+      ],
+      "id": "43b210a6-a2cc-40ff-8391-4815e02f450e",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "jsCode": "const out = [];\n$input.all().forEach((item, i) => {\n  for (const bin of Object.values(item.binary ?? {})) {\n    out.push({\n      json: { fileName: bin.fileName },\n      binary: { data: bin },\n      pairedItem: { item: i },\n    });\n  }\n});\nreturn out;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        384,
+        320
+      ],
+      "id": "bea102d0-bd38-4e31-8a99-948cf1f5a8b9",
+      "name": "Разбивка файлов по items"
+    },
+    {
+      "parameters": {
+        "chunkSize": 800,
+        "chunkOverlap": 150,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        944,
+        688
+      ],
+      "id": "f1a14091-86a6-4bf6-9ff0-cfff99b48279",
+      "name": "Recursive Character Text Splitter"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash-lite",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        1376,
+        560
+      ],
+      "id": "27e920ea-de47-40c9-ac04-224860b4935f",
+      "name": "Google Gemini Chat Model"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-embedding-2"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        912,
+        960
+      ],
+      "id": "38b625f9-6039-4a0b-a87d-cb3ba3659f73",
+      "name": "Embeddings Google Gemini"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2000,
+        320
+      ],
+      "id": "fcb4513a-d434-484f-9afd-1e042bca498e",
+      "name": "Send a text message"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        1300,
+        320
+      ],
+      "id": "7b9c6fae-178a-408d-9aa3-581cd4ffeb66",
+      "name": "Telegram Trigger"
+    },
+    {
+      "parameters": {
+        "content": "### ⑥ Send a text message\nОтправляет `output` агента обратно в тот же чат (`chat.id` из триггера).\n\nParse Mode = HTML: в Markdown подчёркивания в именах файлов (`reglament_otpuskov.pdf`) ломают отправку.",
+        "height": 218,
+        "width": 300,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1936,
+        64
+      ],
+      "id": "b7410caf-be57-428f-b25d-8bcc3cdc1c3e",
+      "name": "Заметка: отправка"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Upload your file here": {
+      "main": [
+        [
+          {
+            "node": "Разбивка файлов по items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Insert Data to Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Data Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Разбивка файлов по items": {
+      "main": [
+        [
+          {
+            "node": "Insert Data to Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recursive Character Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Insert Data to Store",
+            "type": "ai_embedding",
+            "index": 0
+          },
+          {
+            "node": "Query Data Tool",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "tags": []
+}
