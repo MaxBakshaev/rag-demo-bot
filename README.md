@@ -11,14 +11,24 @@
 **Загрузка:** Form Trigger → HTTP Request «Очистить коллекцию» → Code (разбивка файлов по items) → Qdrant Vector Store (Insert)
 с подузлами Default Data Loader (метаданные `source`, `loc.pageNumber`), Recursive Character Text Splitter и Embeddings.
 
-**Ответы:** Telegram Trigger → AI Agent → Send a text message.
-У агента подузлы: Chat Model, Simple Memory (ключ сессии — `chat.id`) и Qdrant Vector Store в режиме «Retrieve as Tool» (`search_docs`).
+**Ответы:** Telegram Trigger → Switch «Тип сообщения» → AI Agent → Send a text message.
+У агента подузлы: Chat Model, Postgres Chat Memory (ключ сессии — `chat.id`) и Qdrant Vector Store в режиме «Retrieve as Tool» (`search_docs`).
+
+Switch обрабатывает служебные сообщения до агента:
+
+| Сообщение | Что происходит |
+|---|---|
+| `/start` (новый пользователь) | приветствие с примерами вопросов |
+| `/new` | удаление истории диалога этого чата из Postgres и подтверждение |
+| не текст (фото, стикер, голос) | ответ «понимаю только текст» |
+| всё остальное | вопрос уходит агенту |
 
 | Компонент | Выбор |
 |---|---|
 | LLM | `gemini-3.5-flash-lite` |
 | Эмбеддинги | `gemini-embedding-2` (3072 измерения) |
 | Хранилище | Qdrant, коллекция `rag_docs` |
+| Память диалогов | Postgres Chat Memory, база `rag_memory`, 5 последних сообщений |
 | Фрагменты | 800 символов, перекрытие 150 |
 | top-k (Limit) | 4 |
 | Интерфейс | Telegram-бот |
@@ -29,7 +39,8 @@
 
 - self-hosted n8n в Docker с публичным HTTPS-адресом (без него Telegram не доставит сообщения);
 - API key Google Gemini ([Google AI Studio](https://aistudio.google.com/));
-- Telegram-бот и его токен (создаётся у [@BotFather](https://t.me/BotFather)).
+- Telegram-бот и его токен (создаётся у [@BotFather](https://t.me/BotFather));
+- PostgreSQL для памяти диалогов (ниже — как добавить, если его нет).
 
 ### 1. Qdrant
 
@@ -80,21 +91,85 @@ curl -s -o /dev/null -w "%{http_code}\n" localhost:6333/collections   # → 401
 
 Dashboard Qdrant открывается через SSH-туннель: `ssh -L 6333:localhost:6333 user@server`, затем `http://localhost:6333/dashboard`.
 
-### 2. Импорт воркфлоу
+### 2. Postgres для памяти диалогов
+
+История диалогов хранится в отдельной базе `rag_memory` под отдельным пользователем `rag_bot`. Так бот не имеет доступа к базе n8n, а её данные — к истории бота.
+
+**Если Postgres уже есть в compose** (типичная установка n8n в queue mode):
+
+```bash
+cd /path/to/n8n          # папка с docker-compose.yml
+docker compose exec postgres sh -c 'psql -U "$POSTGRES_USER" -d postgres \
+  -c "CREATE USER rag_bot WITH PASSWORD '"'"'надёжный_пароль'"'"';" \
+  -c "CREATE DATABASE rag_memory OWNER rag_bot;"'
+```
+
+Должно вывести `CREATE ROLE` и `CREATE DATABASE`. Команда только создаёт новую базу: существующие базы, включая базу n8n, не затрагиваются.
+
+Если база `rag_memory` уже создана ранее от имени основного пользователя, передайте её новому:
+
+```bash
+docker compose exec postgres sh -c 'psql -U "$POSTGRES_USER" -d postgres \
+  -c "CREATE USER rag_bot WITH PASSWORD '"'"'надёжный_пароль'"'"';" \
+  -c "ALTER DATABASE rag_memory OWNER TO rag_bot;"'
+```
+
+**Если Postgres нет** — добавьте сервис в тот же `docker-compose.yml`:
+
+```yaml
+  postgres:
+    image: postgres:16
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: postgres
+    volumes:
+      - db_storage:/var/lib/postgresql/data
+    ports:
+      - 127.0.0.1:5432:5432           # только localhost
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+```
+
+В корневую секцию `volumes` добавьте `db_storage:`, в `.env` — `POSTGRES_USER` и `POSTGRES_PASSWORD`. Запуск и проверка:
+
+```bash
+docker compose up -d postgres
+docker compose ps postgres            # статус healthy
+```
+
+Затем создайте пользователя и базу командой выше.
+
+Проверка:
+
+```bash
+docker compose exec postgres sh -c 'psql -U "$POSTGRES_USER" -d postgres -c "\l"' | grep rag_memory
+```
+
+Таблицу `n8n_chat_histories` создавать не нужно: её создаст узел Postgres Chat Memory при первом вопросе боту.
+
+### 3. Импорт воркфлоу
 
 n8n → **Workflows → Import from File** → `workflows/rag_demo.json`.
 
-### 3. Credentials
+### 4. Credentials
 
 | Credential | Параметры | Узлы |
 |---|---|---|
 | Qdrant API | URL `http://qdrant:6333`, API key из `.env` | Очистить коллекцию, Insert Data to Store, Query Data Tool |
 | Google Gemini (PaLM) API | API key из AI Studio | Google Gemini Chat Model, Embeddings Google Gemini |
-| Telegram API | токен бота | Telegram Trigger, Send a text message |
+| Postgres | Host `postgres`, Port `5432`, Database `rag_memory`, User `rag_bot`, SSL выключен | Postgres Chat Memory, Удалить историю чата |
+| Telegram API | токен бота | Telegram Trigger, Send a text message, все узлы «Ответ: …» |
 
 Если Qdrant доступен по другому адресу, исправьте URL и в узле «Очистить коллекцию» — он задан в самом узле.
 
-### 4. Загрузка документов
+Host `postgres` и `qdrant` — имена сервисов в Docker-сети, а не `localhost`: внутри контейнера n8n `localhost` указывает на сам контейнер.
+
+### 5. Загрузка документов
 
 Нажмите **Execute workflow** — откроется форма. Загрузите все три PDF из `docs/` **одной отправкой**: каждая загрузка удаляет коллекцию и создаёт её заново.
 
@@ -107,13 +182,35 @@ curl -s localhost:6333/collections/rag_docs -H "api-key: $KEY" | grep -o '"point
 
 Ожидается `"vectors":{"size":3072,"distance":"Cosine"` и около 10–12 точек.
 
-### 5. Запуск бота
+### 6. Меню команд бота
 
-Активируйте воркфлоу (переключатель **Active**) и напишите боту. Быстрая проверка:
+В [@BotFather](https://t.me/BotFather): `/setcommands` → выберите бота → отправьте:
 
-1. «Сколько длится основной ежегодный отпуск?» → 28 дней, источник `reglament_otpuskov.pdf, стр. 1`;
-2. сразу следом «А для стажёров?» → 2,33 дня за месяц (проверка памяти);
-3. «Положен ли сотрудникам полис ДМС?» → «Не знаю…» без источника.
+```
+start - Начать
+new - Очистить историю диалога
+```
+
+Команды появятся в меню рядом с полем ввода.
+
+### 7. Запуск и проверка
+
+Активируйте воркфлоу (переключатель **Active**) и напишите боту:
+
+1. `/start` → приветствие;
+2. «Сколько длится основной ежегодный отпуск?» → 28 дней, источник `reglament_otpuskov.pdf, стр. 1`;
+3. сразу следом «А для стажёров?» → 2,33 дня за месяц (память работает);
+4. перезапустите n8n (`docker compose restart n8n n8n-worker`) и снова спросите «А для стажёров?» → бот помнит контекст (память в Postgres);
+5. `/new`, затем «А для стажёров?» → бот не понимает, о чём речь (история очищена);
+6. «Положен ли сотрудникам полис ДМС?» → «Не знаю…» без источника;
+7. отправьте стикер → «понимаю только текст».
+
+Посмотреть сохранённую историю:
+
+```bash
+docker compose exec postgres sh -c 'psql -U "$POSTGRES_USER" -d rag_memory \
+  -c "SELECT session_id, message->>'"'"'type'"'"' AS role, left(message->'"'"'data'"'"'->>'"'"'content'"'"', 60) FROM n8n_chat_histories ORDER BY id DESC LIMIT 10;"'
+```
 
 ### Решение проблем
 
@@ -124,11 +221,15 @@ curl -s localhost:6333/collections/rag_docs -H "api-key: $KEY" | grep -o '"point
 | В выходе «Очистить коллекцию» 401 | ключ не передаётся | проверить credential; при необходимости Authentication → Header Auth с именем `api-key` |
 | Бот молчит | у бота один webhook: открыт тестовый режим или воркфлоу не активен | остановить «Execute workflow», включить Active |
 | Ошибка «can't parse entities» при отправке | Telegram разбирает `_` в именах файлов как Markdown | Parse Mode = HTML (уже задан) |
-| Агент падает на фото или стикере | нет `message.text` | по желанию добавить Filter после Telegram Trigger |
+| Credential Postgres не сохраняется | неверный host или пароль | host `postgres` (не `localhost`), база `rag_memory`, пользователь `rag_bot` |
+| `permission denied for schema public` | база создана другим пользователем | `ALTER DATABASE rag_memory OWNER TO rag_bot;` |
+| `/new` не отвечает | нет вывода у узла удаления | у «Удалить историю чата» должны быть включены Always Output Data и On Error: Continue |
+| История не очищается после `/new` | `session_id` сравнивается как число | в запросе `chat.id` передаётся строкой (`String(...)`) — не меняйте это |
 
 ### Ограничения
 
-- **Simple Memory** хранит историю диалогов в памяти процесса n8n. После перезапуска она теряется, а в queue mode с несколькими воркерами может «прыгать» между процессами. Для продакшена — Postgres или Redis Chat Memory.
+- История диалогов в Postgres растёт без ограничений: в таблице нет даты сообщения, поэтому автоудаления по сроку нет. Пользователь очищает свою историю командой `/new`.
+- В истории хранятся вопросы пользователей вместе с их Telegram ID. Для вымышленных документов это неважно, но при работе с реальными пользователями это персональные данные, и для них нужен срок хранения.
 - Повторная загрузка формы полностью пересоздаёт коллекцию — инкрементального обновления документов нет.
 
 ## Оценка качества
@@ -143,7 +244,7 @@ curl -s localhost:6333/collections/rag_docs -H "api-key: $KEY" | grep -o '"point
 | Вне документов (вкл. ловушку) | 3 | отказ без выдумки |
 | Память | 1 | уточняющий вопрос в той же сессии |
 
-Каждый ответ оценивался по трём метрикам (0/1): `correct` — ключевые факты верны; `source_ok` — верные файл и страница; `no_hallucination` — нет фактов вне документов. Максимум — 45. Каждый вопрос задавался в новой сессии чата. Подбор параметров (прогоны 1–8) шёл на Simple Vector Store во встроенном чате n8n; итоговая конфигурация затем перенесена на Qdrant и Telegram.
+Каждый ответ оценивался по трём метрикам (0/1): `correct` — ключевые факты верны; `source_ok` — верные файл и страница; `no_hallucination` — нет фактов вне документов. Максимум — 45. Каждый вопрос задавался в новой сессии чата. Подбор параметров (прогоны 1–8) шёл на Simple Vector Store во встроенном чате n8n; итоговая конфигурация затем перенесена на Qdrant, Postgres Chat Memory и Telegram.
 
 ### Результаты
 

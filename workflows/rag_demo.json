@@ -1,20 +1,20 @@
 {
-  "name": "Demo: RAG in n8n (Telegram + Qdrant)",
+  "name": "Demo: RAG in n8n (Telegram + Qdrant + Postgres)",
   "nodes": [
     {
       "parameters": {
-        "content": "## 📖 Демо: RAG в n8n\nTelegram-бот отвечает на вопросы по документам и указывает источник (файл и страницу). Нет ответа в документах — говорит «Не знаю».\n\n**Как пользоваться** (после развёртывания ↓)\n1. **Execute workflow** → откроется форма. Загрузите все файлы **за один раз** — каждая загрузка пересоздаёт коллекцию.\n2. Активируйте воркфлоу и пишите боту в Telegram.\n3. Проверка: вопрос не по документам → «Не знаю» без источника.\n\nВекторы хранятся в Qdrant (`rag_docs`) и переживают перезапуск n8n.\n\nДокументация: [RAG в n8n](https://docs.n8n.io/advanced-ai/rag-in-n8n/)",
+        "content": "## 📖 Демо: RAG в n8n\nTelegram-бот отвечает на вопросы по документам и указывает источник (файл и страницу). Нет ответа в документах — говорит «Не знаю».\n\n**Как пользоваться** (после развёртывания ↓)\n1. **Execute workflow** → форма. Загрузите все файлы **за один раз** — каждая загрузка пересоздаёт коллекцию.\n2. Активируйте воркфлоу и пишите боту.\n3. Команды: /start — приветствие, /new — очистить историю диалога.\n\nВекторы — в Qdrant (`rag_docs`), история диалогов — в Postgres (`rag_memory`); всё переживает перезапуск n8n.",
         "height": 352,
-        "width": 440,
+        "width": 472,
         "color": 4
       },
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -1136,
-        -1008
+        2016,
+        848
       ],
-      "id": "2c38c0c3-f92b-4952-a850-1c6e1f2d210e",
+      "id": "9f1fe670-0d5c-42ee-8081-0d2f4c9cb0ab",
       "name": "Заметка: README"
     },
     {
@@ -27,10 +27,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -656,
-        -1008
+        2528,
+        848
       ],
-      "id": "373feda7-1b08-488b-8ec2-a227f5a98fa8",
+      "id": "24713495-5445-4d61-af24-e69182c4ef0f",
       "name": "Заголовок: загрузка"
     },
     {
@@ -43,10 +43,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -656,
-        -896
+        2528,
+        960
       ],
-      "id": "8d95352b-13d6-4086-bf63-824fbe67f9e1",
+      "id": "67e95b99-9186-4385-a845-6d93bb3923da",
       "name": "Заметка: форма"
     },
     {
@@ -59,10 +59,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -96,
-        -896
+        3088,
+        960
       ],
-      "id": "cd44be4b-4074-4a2f-a11c-0d45fa6d265a",
+      "id": "be54db69-54bc-467d-a5f1-50cdccc04484",
       "name": "Заметка: разбивка"
     },
     {
@@ -75,10 +75,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        208,
-        -896
+        3392,
+        960
       ],
-      "id": "a7d34ab3-b92b-42a3-8422-4bcd8149bc1f",
+      "id": "d2d0fafe-f2f5-4af0-aa01-de063ce6a62d",
       "name": "Заметка: запись"
     },
     {
@@ -91,10 +91,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -48,
-        -448
+        3136,
+        1408
       ],
-      "id": "97b54123-4976-4808-9034-adc25a9386e7",
+      "id": "519f4c98-0514-463e-a915-7af6e693bbeb",
       "name": "Заметка: data loader"
     },
     {
@@ -107,10 +107,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        48,
-        -256
+        3232,
+        1600
       ],
-      "id": "e8e266eb-ea8a-45bb-8820-ebb39d1cb351",
+      "id": "47bbf158-d1a0-42aa-ba85-4ad22dc77b53",
       "name": "Заметка: splitter"
     },
     {
@@ -123,10 +123,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        400,
-        160
+        3616,
+        2048
       ],
-      "id": "255d72f2-37da-411f-ae25-a6930965ff77",
+      "id": "40737efb-5d88-4f9c-865a-0bdd79057201",
       "name": "Заметка: embeddings"
     },
     {
@@ -139,26 +139,26 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        864,
-        -992
+        4048,
+        848
       ],
-      "id": "4e8ddb42-e654-4efe-a8c9-880f5e8bc0a7",
+      "id": "abbf40a3-8256-4874-b43a-f2d5127c3900",
       "name": "Заголовок: ответы"
     },
     {
       "parameters": {
-        "content": "### ① Telegram Trigger\nПринимает сообщения боту (событие *message*). Нужен публичный HTTPS-адрес n8n.\n\nТекст вопроса — `message.text`, id чата — `message.chat.id`.\n\nУ бота один webhook: тестовый и боевой режим не работают одновременно.",
-        "height": 218,
+        "content": "### ① Telegram Trigger\nПринимает сообщения боту (событие *message*). Нужен публичный HTTPS-адрес n8n.\n\nТекст — `message.text`, id чата — `message.chat.id`. Дальше сообщение разбирает узел «Тип сообщения» (↑ команды).\n\nУ бота один webhook: тестовый и боевой режим не работают одновременно.",
+        "height": 250,
         "width": 260,
         "color": 6
       },
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        864,
-        -880
+        4048,
+        960
       ],
-      "id": "8c9a0847-7a16-4c84-ab35-4737d42b5ccc",
+      "id": "e0109e8a-82fb-400c-973d-a70717a7430a",
       "name": "Заметка: чат-триггер"
     },
     {
@@ -171,10 +171,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        1136,
-        -880
+        4320,
+        960
       ],
-      "id": "43ff7ee5-fb37-4ee9-9db0-c8cb82385c19",
+      "id": "11f606b9-e7a2-49de-9287-535a8dd9f940",
       "name": "Заметка: агент"
     },
     {
@@ -187,15 +187,15 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        816,
-        -224
+        4048,
+        1760
       ],
-      "id": "e50d5507-e9a0-4afb-90b3-42778970e15d",
+      "id": "5cd555c1-ee9f-4d0e-9a22-569884a04762",
       "name": "Заметка: модель"
     },
     {
       "parameters": {
-        "content": "### ④ Simple Memory\nХранит последние сообщения диалога (по умолчанию 5), чтобы бот понимал уточнения вроде «а для стажёров?».\n\nSession Key = `chat.id` из Telegram Trigger: у каждого чата своя история. Без ключа узел падает с ошибкой «No session ID».",
+        "content": "### ④ Postgres Chat Memory\nХранит последние 5 сообщений диалога в базе `rag_memory`, таблица `n8n_chat_histories` (создаётся сама).\n\nSession Key = `chat.id`: у каждого чата своя история. Переживает перезапуск n8n и работает в queue mode.\n\nОчистка — командой /new.",
         "height": 316,
         "width": 180,
         "color": 6
@@ -203,10 +203,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        1120,
-        -224
+        4352,
+        1760
       ],
-      "id": "3dce61b0-445f-41da-b476-c6f952bb7251",
+      "id": "b83d77b2-f56d-4dc5-bfb6-c9b02eeff29b",
       "name": "Заметка: память"
     },
     {
@@ -219,10 +219,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        1328,
-        -224
+        4560,
+        1760
       ],
-      "id": "31617264-db46-40cf-8eaf-49c337ccec26",
+      "id": "40eb9dc1-c857-4b49-8c25-bdd3ce6f6fa8",
       "name": "Заметка: инструмент"
     },
     {
@@ -243,10 +243,10 @@
       "type": "n8n-nodes-base.formTrigger",
       "typeVersion": 2.2,
       "position": [
-        -576,
-        -624
+        2608,
+        1232
       ],
-      "id": "b8e74b40-6355-405d-97ed-accf9d89cf8d",
+      "id": "4650b274-08cb-45e2-9940-47f81eac3dd5",
       "name": "Upload your file here"
     },
     {
@@ -268,10 +268,10 @@
       "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
       "typeVersion": 1.1,
       "position": [
-        416,
-        -432
+        3600,
+        1424
       ],
-      "id": "20e74481-39c3-4dc7-b5f8-55488267c0dd",
+      "id": "d8b86d8b-a690-4160-873a-45a6ee1d7733",
       "name": "Default Data Loader"
     },
     {
@@ -287,16 +287,16 @@
       "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
       "typeVersion": 1.2,
       "position": [
-        272,
-        -624
+        3456,
+        1232
       ],
-      "id": "01ff9b12-9d97-43c3-b8c0-9322c35b6026",
+      "id": "de9f742b-7644-4335-9827-f074b49695aa",
       "name": "Insert Data to Store"
     },
     {
       "parameters": {
         "promptType": "define",
-        "text": "={{ $json.message.text }}",
+        "text": "={{ $('Telegram Trigger').item.json.message.text }}",
         "options": {
           "systemMessage": "Ты — ассистент, отвечающий строго по документам компании.\n\nПравила:\n1. На любой вопрос по существу сначала вызови инструмент search_docs.\n2. Если вопрос состоит из нескольких частей — ищи по каждой отдельно.\n   Если найденный текст требует от пользователя действия с системой,\n   доступом или процедурой, сделай дополнительный поиск о том, как\n   это получить или выполнить.\n3. Отвечай ТОЛЬКО на основе найденных фрагментов. Не используй\n   собственные знания.\n4. Если ответа во фрагментах нет, ответь ровно:\n   «Не знаю — в документах нет информации об этом.»\n   Источник в этом случае НЕ указывай.\n5. В конце ответа укажи источники, каждый с новой строки:\n   Источник: <source>, стр. <номер страницы>\n   Имя файла копируй из метаданных символ в символ.\n   Указывай только фрагменты, на которые реально опирался.\n6. Пиши простым текстом без Markdown: без **, #, таблиц.\n   Отвечай кратко, на языке вопроса."
         }
@@ -304,10 +304,10 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 2,
       "position": [
-        1216,
-        -624
+        4416,
+        1408
       ],
-      "id": "6a374553-0ebe-4741-8618-1bc2dadcbcb1",
+      "id": "664addb0-ea99-4db1-817b-43c741b75bdc",
       "name": "AI Agent"
     },
     {
@@ -325,25 +325,11 @@
       "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
       "typeVersion": 1.2,
       "position": [
-        1360,
-        -384
+        4592,
+        1616
       ],
-      "id": "4d3887de-acf9-4958-873d-47bf23fcead1",
+      "id": "4e499905-290c-4624-af19-2d2099192438",
       "name": "Query Data Tool"
-    },
-    {
-      "parameters": {
-        "sessionIdType": "customKey",
-        "sessionKey": "={{ $('Telegram Trigger').item.json.message.chat.id }}"
-      },
-      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
-      "typeVersion": 1.3,
-      "position": [
-        1168,
-        -384
-      ],
-      "id": "b65b32df-a9f3-4629-ae27-f22e34c15831",
-      "name": "Simple Memory"
     },
     {
       "parameters": {
@@ -352,10 +338,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -16,
-        -624
+        3168,
+        1232
       ],
-      "id": "02e86113-86da-46d2-a71e-5382829b72cd",
+      "id": "e7544c7f-b423-4cda-9f4b-23d16bf562e5",
       "name": "Разбивка файлов по items"
     },
     {
@@ -367,10 +353,10 @@
       "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
       "typeVersion": 1,
       "position": [
-        544,
-        -256
+        3728,
+        1600
       ],
-      "id": "b277926d-da7d-4608-881b-64f25a1512a6",
+      "id": "42477fc1-653a-4e44-9f40-f5e814fc6dda",
       "name": "Recursive Character Text Splitter"
     },
     {
@@ -383,10 +369,10 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1.1,
       "position": [
-        976,
-        -384
+        4208,
+        1616
       ],
-      "id": "f5e8b31f-71e1-44a0-97f9-69ce6c88cd83",
+      "id": "b9e4d353-42cc-4f6f-b9ae-ae3e22e2c041",
       "name": "Google Gemini Chat Model"
     },
     {
@@ -396,10 +382,10 @@
       "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
       "typeVersion": 1,
       "position": [
-        512,
-        16
+        3728,
+        1904
       ],
-      "id": "eaed8373-7dfc-413c-8cea-8eea1c43577f",
+      "id": "da2cddff-8ecc-4605-b0be-6befd6bca3a8",
       "name": "Embeddings Google Gemini"
     },
     {
@@ -414,10 +400,10 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        1632,
-        -624
+        4832,
+        1216
       ],
-      "id": "bebac50c-6ca3-42db-ae1f-cd5e6d0687de",
+      "id": "e9f768c2-d564-47e6-913a-502c3c47dea9",
       "name": "Send a text message"
     },
     {
@@ -430,10 +416,10 @@
       "type": "n8n-nodes-base.telegramTrigger",
       "typeVersion": 1.2,
       "position": [
-        944,
-        -624
+        4032,
+        1216
       ],
-      "id": "1233f7c9-8fc3-4459-ab02-96a92d6aa200",
+      "id": "26cb6eeb-9796-402f-884a-ec58d9708a38",
       "name": "Telegram Trigger"
     },
     {
@@ -446,10 +432,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        1536,
-        -880
+        4720,
+        960
       ],
-      "id": "4b54da67-2a84-44d3-b254-a2dc97b3e918",
+      "id": "3dfde99b-95ec-4689-a446-645134ac25ee",
       "name": "Заметка: отправка"
     },
     {
@@ -469,10 +455,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -288,
-        -624
+        2896,
+        1232
       ],
-      "id": "6aafe1ff-4135-4e4c-b5db-9e4b680312d0",
+      "id": "dd07a153-70bd-4042-b841-7141dc1e3eea",
       "name": "Очистить коллекцию"
     },
     {
@@ -485,27 +471,255 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -368,
-        -896
+        2816,
+        960
       ],
-      "id": "9a983236-3885-4f65-b849-e018aaf9c33f",
+      "id": "019c5da7-02d4-42c1-b5f2-82dfa519e542",
       "name": "Заметка: очистка"
     },
     {
       "parameters": {
-        "content": "## 🚀 Развёртывание\nНужно: self-hosted n8n с публичным HTTPS (для Telegram), Docker, Qdrant.\n\n**1. Qdrant** — добавьте сервис в docker-compose n8n (одна сеть):\n```\nqdrant:\n  image: qdrant/qdrant:v1.15.4\n  restart: always\n  environment:\n    QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY}\n  volumes:\n    - qdrant_storage:/qdrant/storage\n  ports:\n    - 127.0.0.1:6333:6333\n```\nВ `.env`: `QDRANT_API_KEY=...` (`openssl rand -hex 32`), затем `docker compose up -d qdrant`.\n\n**2. Credentials в n8n**\n• **Qdrant API**: URL `http://qdrant:6333` + ключ → узлы «Очистить коллекцию», «Insert Data to Store», «Query Data Tool»\n• **Google Gemini**: ключ из AI Studio → Chat Model, Embeddings\n• **Telegram**: токен от @BotFather → Telegram Trigger, Send a text message\n\n**3. Проверьте URL** в узле «Очистить коллекцию», если Qdrant не на `qdrant:6333`.\n\n**4.** Загрузите документы через форму, активируйте воркфлоу.\n\nПодробно и решение проблем — в README репозитория.",
-        "height": 640,
-        "width": 440,
+        "content": "## 🚀 Развёртывание\nНужно: self-hosted n8n в Docker с публичным HTTPS, Qdrant, Postgres. Подробно — README.\n\n**1. Qdrant** — сервис в том же docker-compose, что и n8n; ключ `QDRANT_API_KEY` в `.env`.\n\n**2. Postgres** — отдельная база и пользователь для памяти бота:\n```\nCREATE USER rag_bot WITH PASSWORD '...';\nCREATE DATABASE rag_memory OWNER rag_bot;\n```\n\n**3. Credentials**\n• **Qdrant API**: `http://qdrant:6333` + ключ → Очистить коллекцию, Insert, Query Data Tool\n• **Postgres**: host `postgres`, база `rag_memory`, пользователь `rag_bot` → Postgres Chat Memory, Удалить историю чата\n• **Google Gemini** → Chat Model, Embeddings\n• **Telegram** → Telegram Trigger и все узлы «Ответ…» / Send\n\n**4. Команды в меню бота** — @BotFather → /setcommands:\n```\nstart - Начать\nnew - Очистить историю диалога\n```\n\n**5.** Загрузите документы через форму, активируйте воркфлоу.",
+        "height": 720,
+        "width": 472,
         "color": 3
       },
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -1136,
-        -624
+        2016,
+        1232
       ],
-      "id": "20fa7783-91f2-48ef-85fb-0e74e983229e",
+      "id": "fcd179af-3ee1-4370-8c85-c10b75355466",
       "name": "Заметка: развёртывание"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Telegram Trigger').item.json.message.chat.id }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        4400,
+        1616
+      ],
+      "id": "9d373446-64b2-49da-9829-ef803e13d4e4",
+      "name": "Postgres Chat Memory"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "d072ece5-224c-43f0-8bab-451fb700262c",
+                    "leftValue": "={{ ($('Telegram Trigger').item.json.message.text ?? '').trim() }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "empty",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Не текст"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "ee617c7b-ba62-4110-add8-c275b8fdfcbd",
+                    "leftValue": "={{ ($('Telegram Trigger').item.json.message.text ?? '').trim() }}",
+                    "rightValue": "/start",
+                    "operator": {
+                      "type": "string",
+                      "operation": "startsWith"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "/start"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "aff83cbe-83dd-48fa-83f4-e6f9ba892f00",
+                    "leftValue": "={{ ($('Telegram Trigger').item.json.message.text ?? '').trim() }}",
+                    "rightValue": "/new",
+                    "operator": {
+                      "type": "string",
+                      "operation": "startsWith"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "/new"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "Вопрос"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        4240,
+        1216
+      ],
+      "id": "211a655d-a354-4fbe-9947-846ee7339d8d",
+      "name": "Тип сообщения"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "Я понимаю только текстовые сообщения. Напишите вопрос словами.",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        4560,
+        440
+      ],
+      "id": "086d3a9a-8106-4896-852d-ca51b2d2ed88",
+      "name": "Ответ: только текст"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "Здравствуйте! Я отвечаю на вопросы по документам ООО «ТехноЛайн»: отпуска, удалённая работа, ИТ.\n\nНапример: «Сколько длится основной отпуск?» или «Как получить доступ к VPN?»\n\nК каждому ответу я прикладываю источник — файл и страницу. Если в документах ответа нет, так и скажу.\n\n/new — начать диалог заново",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        4560,
+        600
+      ],
+      "id": "97a06d7a-3bfc-48b5-b2df-2a53924c95de",
+      "name": "Ответ: приветствие"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM n8n_chat_histories WHERE session_id = $1;",
+        "options": {
+          "queryReplacement": "={{ String($('Telegram Trigger').item.json.message.chat.id) }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        4560,
+        760
+      ],
+      "id": "f1603b07-48d5-4f51-946f-77175f6f7a12",
+      "name": "Удалить историю чата",
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "История диалога очищена. Задайте новый вопрос.",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        4800,
+        760
+      ],
+      "id": "90e71239-64eb-41eb-825e-af1f2d4aa1ba",
+      "name": "Ответ: история очищена"
+    },
+    {
+      "parameters": {
+        "content": "## 💬 Команды и служебные ответы\nКоманды и нетекстовые сообщения обрабатываются без агента",
+        "height": 90,
+        "width": 1040,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        4048,
+        288
+      ],
+      "id": "4c398619-f39d-4a47-8cd2-6ebb4c25f58a",
+      "name": "Заголовок: команды"
+    },
+    {
+      "parameters": {
+        "content": "### Тип сообщения (Switch)\nРазбирает `message.text` до агента:\n\n• **пусто** (фото, стикер, голос) → «понимаю только текст»\n• **/start** — новый пользователь открыл бота → приветствие с примерами\n• **/new** → удалить историю чата → подтверждение\n• **остальное** → AI Agent\n\nКоманды проверяются через *starts with*: так срабатывают и `/start <параметр>`, и `/new@имя_бота` в группах.\n\nБез этого `/start` уходил бы агенту как вопрос.",
+        "height": 420,
+        "width": 400,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        4048,
+        400
+      ],
+      "id": "ae927b72-8413-4035-8b7e-1e87c89643ae",
+      "name": "Заметка: команды"
+    },
+    {
+      "parameters": {
+        "content": "### Удалить историю чата\n`DELETE FROM n8n_chat_histories WHERE session_id = $1`, где `$1` — `chat.id` строкой (колонка текстовая).\n\n**Always Output Data** + **On Error: Continue** — подтверждение уходит, даже если удалять нечего или таблицы ещё нет (её создаёт память при первом вопросе).",
+        "height": 340,
+        "width": 280,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        4880,
+        400
+      ],
+      "id": "e1506524-acc8-4d4f-b47e-3f3cc93ed047",
+      "name": "Заметка: удаление истории"
     }
   ],
   "pinData": {},
@@ -538,17 +752,6 @@
           {
             "node": "AI Agent",
             "type": "ai_tool",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Simple Memory": {
-      "ai_memory": [
-        [
-          {
-            "node": "AI Agent",
-            "type": "ai_memory",
             "index": 0
           }
         ]
@@ -607,7 +810,7 @@
       "main": [
         [
           {
-            "node": "AI Agent",
+            "node": "Тип сообщения",
             "type": "main",
             "index": 0
           }
@@ -630,6 +833,60 @@
         [
           {
             "node": "Разбивка файлов по items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Тип сообщения": {
+      "main": [
+        [
+          {
+            "node": "Ответ: только текст",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ответ: приветствие",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Удалить историю чата",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Удалить историю чата": {
+      "main": [
+        [
+          {
+            "node": "Ответ: история очищена",
             "type": "main",
             "index": 0
           }
